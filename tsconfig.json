@@ -42,6 +42,6 @@
     "sourceMap": false,
     "composite": false
   },    
-  "include": ["src", "renderer.js"],
-  "exclude": ["node_modules"]
+  "include": ["src", "renderer.ts"],
+  "exclude": ["node_modules", "src/app.js"]
 }

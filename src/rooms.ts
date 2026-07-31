@@ -1,14 +1,15 @@
-import state from './state.js';
-import { mxcToUrl, escapeHtml, makeAvatar } from './utils.js';
-import { loadMessages, loadFullHistory } from './messages.js';
-import { loadMembers } from './members.js';
-import { clearTyping, checkCurrentTypers } from './typing.js';
-import { updateReceipts, sendReceipt, clearReceipts } from './receipts.js';
-import { showPinnedMessages, closePinned } from './pinned.js';
+import state from './state.ts';
+import { mxcToUrl, escapeHtml, makeAvatar } from './utils.ts';
+import { loadMessages, loadFullHistory } from './messages.ts';
+import { loadMembers } from './members.ts';
+import { clearTyping, checkCurrentTypers } from './typing.ts';
+import { updateReceipts, sendReceipt, clearReceipts } from './receipts.ts';
+import { showPinnedMessages, closePinned } from './pinned.ts';
+import type { Room } from 'matrix-js-sdk';
 
-const roomsList = document.getElementById('rooms-list');
+const roomsList = document.getElementById('rooms-list')!;
 
-function showHomeNav(visible) {
+export function showHomeNav(visible: boolean) {
   document.getElementById('home-nav')?.classList.toggle('visible', visible);
   const membersBtn = document.getElementById('members-btn');
   const pinnedBtn = document.getElementById('pinned-btn');
@@ -20,7 +21,7 @@ function showHomeNav(visible) {
 document.getElementById('nav-dms')?.addEventListener('click', () => setHomeView('dms'));
 document.getElementById('nav-rooms')?.addEventListener('click', () => setHomeView('rooms'));
 
-function setHomeView(view) {
+function setHomeView(view: 'dms' | 'rooms') {
   state.homeView = view;
   document.querySelectorAll('.home-nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById(`nav-${view}`)?.classList.add('active');
@@ -31,7 +32,7 @@ function setHomeView(view) {
     openRoom(lastRoom);
   } else {
     setTimeout(() => {
-      const firstRoom = document.querySelector('#rooms-list .room-item');
+      const firstRoom = document.querySelector<HTMLElement>('#rooms-list .room-item');
       if (firstRoom?.dataset.roomId) openRoom(firstRoom.dataset.roomId);
     }, 0);
   }
@@ -46,31 +47,31 @@ document.getElementById('home-server')?.addEventListener('click', () => {
   state.roomId = null;
   clearReceipts();
   clearTyping();
-  document.getElementById('current-room-name').innerHTML = '';
+  document.getElementById('current-room-name')!.innerHTML = '';
   document.querySelectorAll('.server-icon').forEach(i => i.classList.remove('active'));
   document.getElementById('home-server')?.classList.add('active');
-  document.querySelector('.sidebar-header h2').textContent = 'Home';
+  document.querySelector('.sidebar-header h2')!.textContent = 'Home';
   showHomeNav(true);
   loadHomeView();
 
   const lastRoom = state.lastRoomPerSpace['home'];
-  if (lastRoom && state.client.getRoom(lastRoom)) {
+  if (lastRoom && state.client!.getRoom(lastRoom)) {
     openRoom(lastRoom);
   } else {
-    document.getElementById('messages-container').innerHTML =
+    document.getElementById('messages-container')!.innerHTML =
       '<div class="empty-state"><p>Select a room to start messaging</p></div>';
-    document.getElementById('message-input-container').style.display = 'none';
-    document.getElementById('members-sidebar').style.display = 'none';
-    document.getElementById('members-btn').style.display = 'none';
+    document.getElementById('message-input-container')!.style.display = 'none';
+    document.getElementById('members-sidebar')!.style.display = 'none';
+    document.getElementById('members-btn')!.style.display = 'none';
   }
 });
 
-function loadHomeView() {
+export function loadHomeView() {
   if (!state.client) return;
 
   const rooms = state.client.getRooms();
   const dmIds = new Set(
-    Object.values(state.client.getAccountData('m.direct')?.getContent() || {}).flat()
+    Object.values(state.client.getAccountData('m.direct' as any)?.getContent() || {}).flat() as string[]
   );
 
   const homeRooms = rooms.filter(r => {
@@ -91,7 +92,7 @@ function loadHomeView() {
     const nonDm = homeRooms.filter(r => !dmIds.has(r.roomId));
     if (!nonDm.length) { roomsList.innerHTML = '<p class="loading">No rooms</p>'; return; }
 
-    const getJoinRule = r => r.currentState.getStateEvents('m.room.join_rules', '')?.getContent()?.join_rule;
+    const getJoinRule = (r: Room) => r.currentState.getStateEvents('m.room.join_rules', '')?.getContent()?.join_rule;
     const regular = nonDm.filter(r => getJoinRule(r) !== 'public');
     const global = nonDm.filter(r => getJoinRule(r) === 'public');
 
@@ -108,24 +109,24 @@ function loadHomeView() {
   }
 }
 
-function loadSpaces() {
+export function loadSpaces() {
   const spacesList = document.getElementById('spaces-list');
   if (!spacesList) return;
   spacesList.innerHTML = '';
 
-  state.client.getRooms()
+  state.client!.getRooms()
     .filter(r => r.isSpaceRoom() && !r.currentState.getStateEvents('m.space.parent')?.length)
     .forEach(space => spacesList.appendChild(makeSpaceIcon(space)));
 }
 
-function makeSpaceIcon(space) {
+function makeSpaceIcon(space: Room) {
   const icon = document.createElement('div');
   icon.className = 'server-icon';
   icon.title = space.name || 'Unnamed Space';
   icon.dataset.spaceId = space.roomId;
 
   const url = mxcToUrl(space.getMxcAvatarUrl?.());
-  const letter = (space.name || '?')[0].toUpperCase();
+  const letter = (space.name || '?')[0]!.toUpperCase();
 
   if (url) {
     const img = document.createElement('img');
@@ -141,38 +142,38 @@ function makeSpaceIcon(space) {
   return icon;
 }
 
-function switchSpace(spaceId) {
+function switchSpace(spaceId: string) {
   state.spaceId = spaceId;
   showHomeNav(false);
   document.querySelectorAll('.server-icon').forEach(i => i.classList.remove('active'));
   document.querySelector(`[data-space-id="${spaceId}"]`)?.classList.add('active');
   document.getElementById('home-server')?.classList.remove('active');
-  const name = state.client.getRoom(spaceId)?.name || 'Space';
-  document.querySelector('.sidebar-header h2').textContent = name;
+  const name = state.client!.getRoom(spaceId)?.name || 'Space';
+  document.querySelector('.sidebar-header h2')!.textContent = name;
   loadSpaceRooms(spaceId);
 
   const lastRoom = state.lastRoomPerSpace[spaceId];
-  if (lastRoom && state.client.getRoom(lastRoom)) {
+  if (lastRoom && state.client!.getRoom(lastRoom)) {
     openRoom(lastRoom);
   } else {
     setTimeout(() => {
-      const firstRoom = document.querySelector('#rooms-list .room-item');
+      const firstRoom = document.querySelector<HTMLElement>('#rooms-list .room-item');
       if (firstRoom?.dataset.roomId) openRoom(firstRoom.dataset.roomId);
     }, 0);
   }
 }
 
-function loadSpaceRooms(spaceId) {
-  const all = state.client.getRooms();
-  const space = state.client.getRoom(spaceId);
+function loadSpaceRooms(spaceId: string) {
+  const all = state.client!.getRooms();
+  const space = state.client!.getRoom(spaceId);
   const childIds = new Set(
-    (space?.currentState.getStateEvents('m.space.child') || []).map(e => e.getStateKey()).filter(Boolean)
+    (space?.currentState.getStateEvents('m.space.child') || []).map(e => e.getStateKey()).filter((s): s is string => Boolean(s))
   );
 
-  const subSpaces = [], direct = [];
+  const subSpaces: Room[] = [], direct: Room[] = [];
   all.forEach(room => {
     const id = room.roomId;
-    const isChild = childIds.has(id) || childIds.has(id.split(':')[0]);
+    const isChild = childIds.has(id) || childIds.has((id.split(':')[0] ?? ''));
     if (!isChild) {
       const parents = room.currentState.getStateEvents('m.space.parent') || [];
       if (!parents.some(e => e.getStateKey() === spaceId)) return;
@@ -193,7 +194,7 @@ function loadSpaceRooms(spaceId) {
         .forEach(r => roomsList.appendChild(makeRoomEl(r)));
 }
 
-function renderSubSpaceCategory(sub) {
+function renderSubSpaceCategory(sub: Room) {
   const isExpanded = localStorage.getItem(`space-${sub.roomId}-expanded`) !== 'false';
 
   const cat = document.createElement('div');
@@ -210,40 +211,41 @@ function renderSubSpaceCategory(sub) {
   `;
   roomsList.appendChild(cat);
 
-  const arrow = cat.querySelector('.space-category-arrow');
-  const roomsEl = cat.querySelector('.space-category-rooms');
+  const arrow = cat.querySelector('.space-category-arrow')!;
+  const roomsEl = cat.querySelector('.space-category-rooms')!;
 
-  cat.querySelector('.space-category-header').addEventListener('click', () => {
+  cat.querySelector('.space-category-header')!.addEventListener('click', () => {
     const expanded = arrow.classList.toggle('expanded');
     roomsEl.classList.toggle('expanded');
-    localStorage.setItem(`space-${sub.roomId}-expanded`, expanded);
+    localStorage.setItem(`space-${sub.roomId}-expanded`, expanded.toString());
   });
 
   const subChildIds = new Set(
-    (sub.currentState.getStateEvents('m.space.child') || []).map(e => e.getStateKey()).filter(Boolean)
+    (sub.currentState.getStateEvents('m.space.child') || []).map(e => e.getStateKey()).filter((s): s is string => Boolean(s))
   );
 
-  state.client.getRooms()
+  state.client!.getRooms()
     .filter(r => {
       if (r.isSpaceRoom()) return false;
-      if (subChildIds.has(r.roomId) || subChildIds.has(r.roomId.split(':')[0])) return true;
+      if (subChildIds.has(r.roomId) || subChildIds.has((r.roomId.split(':')[0] ?? ''))) return true;
       return (r.currentState.getStateEvents('m.space.parent') || []).some(e => e.getStateKey() === sub.roomId);
     })
     .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
     .forEach(r => roomsEl.appendChild(makeRoomEl(r)));
 }
 
-function makeRoomEl(room, isDm = false) {
+function makeRoomEl(room: Room, isDm = false) {
   const el = document.createElement('div');
   el.className = 'room-item';
   el.dataset.roomId = room.roomId;
 
   if (isDm) {
     const members = room.getJoinedMembers();
-    const other = members.find(m => m.userId !== state.client.getUserId()) || members[0];
+    const other = members.find(m => m.userId !== state.client!.getUserId()) || members[0];
     const name = other?.name || room.name || '?';
-    const letter = name[0].toUpperCase();
-    const avatarMxc = other?.getMxcAvatarUrl() || state.client.getUser(other?.userId)?.avatarUrl;
+    const letter = name[0]!.toUpperCase();
+    const otherUser = other ? state.client!.getUser(other.userId) : undefined;
+    const avatarMxc = other?.getMxcAvatarUrl() || otherUser?.avatarUrl;
     const avatarEl = makeAvatar(mxcToUrl(avatarMxc), letter, 'dm-avatar');
     const nameEl = document.createElement('div');
     nameEl.className = 'room-name';
@@ -257,36 +259,35 @@ function makeRoomEl(room, isDm = false) {
   return el;
 }
 
-function makeCategoryHeader(text) {
+function makeCategoryHeader(text: string) {
   const el = document.createElement('div');
   el.className = 'room-category';
   el.textContent = text;
   return el;
 }
 
-function openRoom(roomId) {
+export function openRoom(roomId: string) {
   clearTyping();
   clearReceipts();
   closePinned();
   state.roomId = roomId;
   state.lastRoomPerSpace[state.spaceId || 'home'] = roomId;
   checkCurrentTypers();
-  const room = state.client.getRoom(roomId);
-  const encrypted = state.client.isRoomEncrypted(roomId);
+  const room = state.client!.getRoom(roomId)!;
+  const encrypted = state.client!.isRoomEncrypted(roomId);
 
   if (!state.spaceId) {
     showHomeNav(true);
   } else {
     showHomeNav(false);
   }
-  
 
-  document.getElementById('current-room-name').innerHTML = `
+  document.getElementById('current-room-name')!.innerHTML = `
     <span class="encryption-indicator ${encrypted ? 'encrypted' : 'unencrypted'}"></span>
     ${escapeHtml(room.name || 'Unnamed Room')}`;
 
-  document.getElementById('message-input-container').style.display = 'flex';
-  document.getElementById('message-input').placeholder = `Message #${room.name || roomId}`;
+  document.getElementById('message-input-container')!.style.display = 'flex';
+  (document.getElementById('message-input') as HTMLTextAreaElement).placeholder = `Message #${room.name || roomId}`;
   document.querySelectorAll('.room-item').forEach(el => el.classList.remove('active'));
   document.querySelector(`[data-room-id="${roomId}"]`)?.classList.add('active');
 
@@ -297,9 +298,7 @@ function openRoom(roomId) {
   updateReceipts();
 }
 
-function handleNewRoom(room) {
+export function handleNewRoom(_room: Room) {
   if (!state.spaceId) loadHomeView();
   loadSpaces();
 }
-
-module.exports = { loadHomeView, loadSpaces, openRoom, showHomeNav, handleNewRoom };

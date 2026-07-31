@@ -1,21 +1,22 @@
-import state from './state.js';
-import { mxcToUrl, escapeHtml, makeAvatar } from './utils.js';
-import { showUserProfile } from './profile.js';
+import state from './state.ts';
+import { mxcToUrl, escapeHtml, makeAvatar, localpart } from './utils.ts';
+import { showUserProfile } from './profile.ts';
+import type { RoomMember } from 'matrix-js-sdk';
 
 const ITEM_HEIGHT = 42;
 const BUFFER = 10;
-const sidebar = document.getElementById('members-sidebar');
-const list = document.getElementById('members-list');
+const sidebar = document.getElementById('members-sidebar')!;
+const list = document.getElementById('members-list')!;
 
 document.getElementById('members-btn')?.addEventListener('click', () => {
-  const btn = document.getElementById('members-btn');
+  const btn = document.getElementById('members-btn')!;
   const isHidden = sidebar.style.display === 'none';
   sidebar.style.display = isHidden ? 'flex' : 'none';
   btn.classList.toggle('active', isHidden);
 });
 
-function loadMembers(roomId) {
-  const room = state.client.getRoom(roomId);
+export function loadMembers(roomId: string) {
+  const room = state.client!.getRoom(roomId);
   if (!room) return;
 
   state.allMembers = room.getJoinedMembers()
@@ -47,35 +48,36 @@ function onScroll() {
   if (start !== state.memberRange.start || end !== state.memberRange.end) renderRange(start, end);
 }
 
-function renderRange(start, end) {
+function renderRange(start: number, end: number) {
   state.memberRange = { start, end };
   list.querySelectorAll('.member-item').forEach(el => el.remove());
   for (let i = start; i < end; i++) {
-    if (!state.allMembers[i]) continue;
-    const el = makeMemberEl(state.allMembers[i]);
+    const member = state.allMembers[i];
+    if (!member) continue;
+    const el = makeMemberEl(member);
     el.style.cssText = `position:absolute;top:${i * ITEM_HEIGHT}px;width:100%;height:${ITEM_HEIGHT}px`;
     list.appendChild(el);
   }
 }
 
-function makeMemberEl(member) {
+function makeMemberEl(member: RoomMember) {
   const el = document.createElement('div');
   el.className = 'member-item';
 
   const name = (() => {
-    const raw = member.name || member.userId.split(':')[0].slice(1);
+    const raw = member.name || localpart(member.userId);
     const i = raw.indexOf('(');
     return i > 0 ? raw.slice(0, i).trim() : raw;
   })();
 
-  const presence = state.client.getUser(member.userId)?.presence;
-  if (member.userId === state.client.getUserId() || presence === 'online') {
+  const presence = state.client!.getUser(member.userId)?.presence;
+  if (member.userId === state.client!.getUserId() || presence === 'online') {
     el.classList.add('online');
   } else if (presence === 'unavailable') {
     el.classList.add('idle');
   }
 
-  const avatarEl = makeAvatar(mxcToUrl(member.getMxcAvatarUrl()), name[0].toUpperCase(), 'member-avatar');
+  const avatarEl = makeAvatar(mxcToUrl(member.getMxcAvatarUrl()), name[0]!.toUpperCase(), 'member-avatar');
 
   const info = document.createElement('div');
   info.className = 'member-info';
@@ -85,5 +87,3 @@ function makeMemberEl(member) {
   el.addEventListener('click', () => showUserProfile(member, el));
   return el;
 }
-
-module.exports = { loadMembers };

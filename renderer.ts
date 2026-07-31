@@ -1,51 +1,51 @@
-import state from './src/state.js';
-import { mxcToUrl, scrollToBottom } from './src/utils.js';
-import { login, getSavedSession, normalizeHomeserver, showStatus } from './src/auth.js';
-import { startClient } from './src/client.js';
-import { buildMessageEl } from './src/messages.js';
-import { buildBody, clearMentions } from './src/mentions.js';
-import * as authModule from './src/auth.js';
+import state from './src/state.ts';
+import { scrollToBottom } from './src/utils.ts';
+import { login, getSavedSession, normalizeHomeserver, showStatus } from './src/auth.ts';
+import { startClient } from './src/client.ts';
+import { buildMessageEl } from './src/messages.ts';
+import { buildBody, clearMentions } from './src/mentions.ts';
+import * as authModule from './src/auth.ts';
 
 window.addEventListener('DOMContentLoaded', () => {
   const session = getSavedSession();
   if (session) {
-    document.getElementById('login-screen').classList.remove('active');
-    document.getElementById('loading-screen').classList.add('active');
+    document.getElementById('login-screen')!.classList.remove('active');
+    document.getElementById('loading-screen')!.classList.add('active');
     startClient(session).catch(() => {
       authModule.clearSession();
-      document.getElementById('loading-screen').classList.remove('active');
-      document.getElementById('login-screen').classList.add('active');
+      document.getElementById('loading-screen')!.classList.remove('active');
+      document.getElementById('login-screen')!.classList.add('active');
     });
   } else {
-    document.getElementById('login-screen').classList.add('active');
+    document.getElementById('login-screen')!.classList.add('active');
   }
 });
 
-document.getElementById('login-form').addEventListener('submit', async e => {
+document.getElementById('login-form')!.addEventListener('submit', async e => {
   e.preventDefault();
 
-  const homeserver = normalizeHomeserver(document.getElementById('homeserver').value);
-  const username = document.getElementById('username').value.trim();
-  const password = document.getElementById('password').value;
-  const btn = e.target.querySelector('button[type="submit"]');
+  const homeserver = normalizeHomeserver((document.getElementById('homeserver') as HTMLInputElement).value);
+  const username = (document.getElementById('username') as HTMLInputElement).value.trim();
+  const password = (document.getElementById('password') as HTMLInputElement).value;
+  const btn = (e.target as HTMLFormElement).querySelector<HTMLButtonElement>('button[type="submit"]')!;
 
   showStatus('Connecting...', 'success');
   btn.disabled = true;
 
   try {
     const creds = await login(homeserver, username, password);
-    document.getElementById('login-screen').classList.remove('active');
-    document.getElementById('loading-screen').classList.add('active');
+    document.getElementById('login-screen')!.classList.remove('active');
+    document.getElementById('loading-screen')!.classList.add('active');
     await startClient(creds);
   } catch (err) {
-    showStatus(`Login failed: ${err.message}`, 'error');
+    showStatus(`Login failed: ${err instanceof Error ? err.message : err}`, 'error');
     btn.disabled = false;
   }
 });
 
-const messageForm = document.getElementById('message-form');
-const messageInput = document.getElementById('message-input');
-const messagesContainer = document.getElementById('messages-container');
+const messageForm = document.getElementById('message-form') as HTMLFormElement;
+const messageInput = document.getElementById('message-input') as HTMLTextAreaElement;
+const messagesContainer = document.getElementById('messages-container') as HTMLElement;
 
 messageInput.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) {
@@ -71,7 +71,7 @@ messageForm.addEventListener('submit', async e => {
 
   const tempId = `temp-${Date.now()}`;
   const fakeEvent = {
-    getSender: () => state.client.getUserId(),
+    getSender: () => state.client!.getUserId() ?? undefined,
     getContent: () => ({ msgtype: 'm.text', body: text }),
     getDate: () => new Date(),
     getType: () => 'm.room.message',
@@ -85,8 +85,8 @@ messageForm.addEventListener('submit', async e => {
   scrollToBottom();
 
   try {
-    const hs = state.client.getHomeserverUrl();
-    const token = state.client.getAccessToken();
+    const hs = state.client!.getHomeserverUrl();
+    const token = state.client!.getAccessToken();
     const txnId = `m${Date.now()}${Math.random().toString(36).slice(2)}`;
     const res = await fetch(`${hs}/_matrix/client/v3/rooms/${encodeURIComponent(state.roomId)}/send/m.room.message/${txnId}`, {
       method: 'PUT',
@@ -99,7 +99,7 @@ messageForm.addEventListener('submit', async e => {
   } catch (err) {
     console.error('Send failed:', err);
     clearMentions();
-    const el = messagesContainer.querySelector(`[data-temp-id="${tempId}"]`);
+    const el = messagesContainer.querySelector<HTMLElement>(`[data-temp-id="${tempId}"]`);
     if (!el) return;
     el.style.opacity = '1';
     el.style.background = 'rgba(237,66,69,0.1)';
@@ -110,10 +110,10 @@ messageForm.addEventListener('submit', async e => {
       retry.disabled = true;
       retry.textContent = 'Retrying...';
       try {
-        const hs2 = state.client.getHomeserverUrl();
-        const token2 = state.client.getAccessToken();
+        const hs2 = state.client!.getHomeserverUrl();
+        const token2 = state.client!.getAccessToken();
         const txnId2 = `m${Date.now()}${Math.random().toString(36).slice(2)}`;
-        const res2 = await fetch(`${hs2}/_matrix/client/v3/rooms/${encodeURIComponent(state.roomId)}/send/m.room.message/${txnId2}`, {
+        const res2 = await fetch(`${hs2}/_matrix/client/v3/rooms/${encodeURIComponent(state.roomId!)}/send/m.room.message/${txnId2}`, {
           method: 'PUT',
           headers: { 'Authorization': `Bearer ${token2}`, 'Content-Type': 'application/json' },
           body: JSON.stringify(msg),
@@ -130,13 +130,13 @@ messageForm.addEventListener('submit', async e => {
   }
 });
 
-const attachBtn = document.getElementById('attach-btn');
-const fileInput = document.getElementById('file-input');
+const attachBtn = document.getElementById('attach-btn')!;
+const fileInput = document.getElementById('file-input') as HTMLInputElement;
 
 attachBtn.addEventListener('click', () => fileInput.click());
 
 fileInput.addEventListener('change', async e => {
-  const file = e.target.files[0];
+  const file = (e.target as HTMLInputElement).files?.[0];
   if (!file || !state.roomId) return;
 
   if (!file.type.startsWith('image/')) { alert('Images only please'); return; }
@@ -149,13 +149,12 @@ fileInput.addEventListener('change', async e => {
   scrollToBottom();
 
   try {
-    const res = await state.client.uploadContent(file, {
+    const res = await state.client!.uploadContent(file, {
       name: file.name,
       type: file.type,
-      onlyContentUri: false,
     });
-    const hs = state.client.getHomeserverUrl();
-    const token = state.client.getAccessToken();
+    const hs = state.client!.getHomeserverUrl();
+    const token = state.client!.getAccessToken();
     const txnId = `img${Date.now()}${Math.random().toString(36).slice(2)}`;
     await fetch(`${hs}/_matrix/client/v3/rooms/${encodeURIComponent(state.roomId)}/send/m.room.message/${txnId}`, {
       method: 'PUT',
@@ -163,7 +162,7 @@ fileInput.addEventListener('change', async e => {
       body: JSON.stringify({ msgtype: 'm.image', body: file.name, url: res.content_uri, info: { mimetype: file.type, size: file.size } }),
     });
   } catch (err) {
-    alert('Upload failed: ' + err.message);
+    alert('Upload failed: ' + (err instanceof Error ? err.message : err));
   } finally {
     status.remove();
     fileInput.value = '';
