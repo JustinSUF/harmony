@@ -7,14 +7,48 @@ import { initPickers } from './picker.ts';
 import { init as initTyping } from './typing.ts';
 import { init as initReceipts } from './receipts.ts';
 import * as sdk from 'matrix-js-sdk';
-import type { MatrixClient } from 'matrix-js-sdk';
+import type { MatrixClient, ICreateClientOpts, Filter } from 'matrix-js-sdk';
+
+const SYNC_TIMELINE_TYPES = ['m.room.message', 'm.room.redaction', 'm.reaction'];
+const SYNC_STATE_TYPES = [
+  'm.room.member',
+  'm.room.name',
+  'm.room.avatar',
+  'm.room.topic',
+  'm.room.create',
+  'm.room.join_rules',
+  'm.room.pinned_events',
+  'm.room.encrypted',
+  'm.room.canonical_alias',
+  'm.room.aliases',
+  'm.room.power_levels',
+  'm.space.parent',
+  'm.space.child',
+];
+const SYNC_EPHEMERAL_TYPES = ['m.typing', 'm.receipt'];
+const SYNC_ACCOUNT_DATA_TYPES = ['m.direct', 'm.push_rules'];
+
+function buildSyncFilter(userId: string): sdk.Filter {
+  const filter = new sdk.Filter(userId);
+  filter.setDefinition({
+    room: {
+      timeline: { types: SYNC_TIMELINE_TYPES },
+      state: { types: SYNC_STATE_TYPES },
+      ephemeral: { types: SYNC_EPHEMERAL_TYPES },
+      account_data: { types: SYNC_ACCOUNT_DATA_TYPES },
+    },
+  });
+  return filter;
+}
 
 async function buildClient(credentials: Credentials): Promise<MatrixClient> {
-  return sdk.createClient({
+  const opts: ICreateClientOpts & { filter: Filter } = {
     baseUrl: credentials.baseUrl || credentials.homeserver,
     accessToken: credentials.accessToken || credentials.token,
     userId: credentials.userId,
-  });
+    filter: buildSyncFilter(credentials.userId),
+  };
+  return sdk.createClient(opts);
 }
 
 export async function startClient(credentials: Credentials) {
@@ -65,7 +99,7 @@ export async function startClient(credentials: Credentials) {
   state.client.on('Room' as any, handleNewRoom);
 
   await state.client.startClient({
-    initialSyncLimit: 100,
+    initialSyncLimit: 50,
     lazyLoadMembers: true,
     pendingEventOrdering: sdk.PendingEventOrdering.Chronological,
   });
