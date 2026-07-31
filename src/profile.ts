@@ -1,25 +1,26 @@
-const state = require('./state');
-const { mxcToUrl, getAverageColor } = require('./utils');
+import state from './state.ts';
+import { mxcToUrl, getAverageColor, localpart } from './utils.ts';
+import type { RoomMember } from 'matrix-js-sdk';
 
-const popup = document.getElementById('user-profile-popup');
+const popup = document.getElementById('user-profile-popup')!;
 const closeBtn = document.getElementById('profile-close');
 
-function stripMatrixSuffix(name) {
+function stripMatrixSuffix(name: string) {
   const i = name.indexOf('(');
   return i > 0 ? name.slice(0, i).trim() : name;
 }
 
-function showUserProfile(member, anchor) {
+export function showUserProfile(member: RoomMember, anchor: HTMLElement) {
   state.profileMember = member;
 
-  const displayName = stripMatrixSuffix(member.name || member.userId.split(':')[0].slice(1));
-  const letter = displayName[0].toUpperCase();
+  const displayName = stripMatrixSuffix(member.name || localpart(member.userId));
+  const letter = displayName[0]!.toUpperCase();
 
-  document.getElementById('profile-display-name').textContent = displayName;
-  document.getElementById('profile-username').textContent = member.userId;
+  document.getElementById('profile-display-name')!.textContent = displayName;
+  document.getElementById('profile-username')!.textContent = member.userId;
 
-  const avatar = document.getElementById('profile-avatar');
-  const banner = document.getElementById('profile-banner');
+  const avatar = document.getElementById('profile-avatar')!;
+  const banner = document.getElementById('profile-banner')!;
   const avatarUrl = mxcToUrl(member.getMxcAvatarUrl());
 
   if (avatarUrl) {
@@ -32,7 +33,7 @@ function showUserProfile(member, anchor) {
 
   const badge = document.getElementById('profile-status-badge');
   if (badge) {
-    const presence = state.client.getUser(member.userId)?.presence;
+    const presence = state.client!.getUser(member.userId)?.presence;
     badge.className = 'profile-status-badge';
     if (presence === 'online') badge.classList.add('online');
     else if (presence === 'unavailable') badge.classList.add('idle');
@@ -46,8 +47,8 @@ function showUserProfile(member, anchor) {
   positionPopup(anchor);
 }
 
-function positionPopup(anchor) {
-  const content = popup.querySelector('.profile-popup-content');
+function positionPopup(anchor: HTMLElement) {
+  const content = popup.querySelector('.profile-popup-content') as HTMLElement;
   requestAnimationFrame(() => {
     const a = anchor.getBoundingClientRect();
     const p = content.getBoundingClientRect();
@@ -71,19 +72,19 @@ closeBtn?.addEventListener('click', closeProfile);
 
 window.addEventListener('resize', () => {
   if (!popup.classList.contains('active')) return;
-  const anchor = document.querySelector('.member-item.profile-open');
+  const anchor = document.querySelector<HTMLElement>('.member-item.profile-open');
   if (anchor) positionPopup(anchor);
 });
 
 document.addEventListener('click', e => {
   if (!popup.classList.contains('active')) return;
-  const content = popup.querySelector('.profile-popup-content');
-  if (!content.contains(e.target) &&
-      !e.target.closest('.member-item') &&
-      !e.target.closest('.message-avatar') &&
-      !e.target.classList.contains('message-sender')) {
+  const content = popup.querySelector('.profile-popup-content') as HTMLElement;
+  const target = e.target as HTMLElement | null;
+  if (target &&
+      !content.contains(e.target as Node) &&
+      !target.closest('.member-item') &&
+      !target.closest('.message-avatar') &&
+      !target.classList.contains('message-sender')) {
     closeProfile();
   }
 });
-
-module.exports = { showUserProfile };

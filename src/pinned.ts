@@ -1,15 +1,15 @@
-const state = require('./state');
-const { mxcToUrl, escapeHtml, makeAvatar } = require('./utils');
-const { buildMessageEl } = require('./messages');
+import state from './state.ts';
+import { mxcToUrl, escapeHtml, makeAvatar, localpart } from './utils.ts';
+import { buildMessageEl } from './messages.ts';
 
-let panel = null;
+let panel: HTMLElement | null = null;
 
-function showPinnedMessages() {
+export function showPinnedMessages() {
   if (panel) { panel.remove(); panel = null; document.getElementById('pinned-btn')?.classList.remove('active'); return; }
 
-  const room = state.client.getRoom(state.roomId);
+  const room = state.client!.getRoom(state.roomId!);
   const pinnedEvent = room?.currentState.getStateEvents('m.room.pinned_events', '');
-  const pinnedIds = pinnedEvent?.getContent()?.pinned || [];
+  const pinnedIds: string[] = pinnedEvent?.getContent()?.pinned || [];
 
   panel = document.createElement('div');
   panel.className = 'pinned-popup';
@@ -22,8 +22,8 @@ function showPinnedMessages() {
   `;
   panel.appendChild(header);
 
-  header.querySelector('.pinned-close').addEventListener('click', () => {
-    panel.remove(); panel = null;
+  header.querySelector('.pinned-close')!.addEventListener('click', () => {
+    panel?.remove(); panel = null;
     document.getElementById('pinned-btn')?.classList.remove('active');
   });
 
@@ -34,24 +34,24 @@ function showPinnedMessages() {
     list.innerHTML = '<div class="pinned-empty">No pinned messages yet</div>';
   } else {
     pinnedIds.slice().reverse().forEach(eventId => {
-      const event = room.timeline.find(e => e.getId() === eventId);
+      const event = room!.timeline.find(e => e.getId() === eventId);
       if (!event) return;
 
-      const sender = event.getSender();
-      const member = room.getMember(sender);
+      const sender = event.getSender()!;
+      const member = room!.getMember(sender);
       const name = (() => {
-        const raw = member?.name || sender.split(':')[0].slice(1);
+        const raw = member?.name || localpart(sender);
         const i = raw.indexOf('(');
         return i > 0 ? raw.slice(0, i).trim() : raw;
       })();
       const avatarUrl = mxcToUrl(member?.getMxcAvatarUrl?.());
-      const ts = new Date(event.getDate()).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+      const ts = new Date(event.getDate() ?? 0).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
       const content = event.getContent();
 
       const item = document.createElement('div');
       item.className = 'pinned-item';
 
-      const avatarEl = makeAvatar(avatarUrl, name[0].toUpperCase(), 'pinned-avatar');
+      const avatarEl = makeAvatar(avatarUrl, name[0]!.toUpperCase(), 'pinned-avatar');
 
       let bodyHtml = '';
       if (content.msgtype === 'm.image') {
@@ -59,7 +59,7 @@ function showPinnedMessages() {
         bodyHtml = url ? `<img src="${url}" class="pinned-image" alt="${escapeHtml(content.body || 'Image')}">` : '[Image]';
       } else {
         const msgEl = buildMessageEl(event);
-        const msgContent = msgEl.querySelector('.message-content');
+        const msgContent = msgEl.querySelector<HTMLElement>('.message-content');
         bodyHtml = msgContent ? msgContent.innerHTML : escapeHtml(content.body || '');
       }
 
@@ -76,16 +76,16 @@ function showPinnedMessages() {
 
       item.append(avatarEl, inner);
 
-      inner.querySelector('.pinned-jump').addEventListener('click', () => {
+      inner.querySelector('.pinned-jump')!.addEventListener('click', () => {
         const target = document.querySelector(`[data-event-id="${eventId}"]`);
         if (target) {
-            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            target.classList.add('message-highlight');
-            setTimeout(() => target.classList.remove('message-highlight'), 2000);
+          target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          target.classList.add('message-highlight');
+          setTimeout(() => target.classList.remove('message-highlight'), 2000);
         }
         panel?.remove(); panel = null;
         document.getElementById('pinned-btn')?.classList.remove('active');
-        });
+      });
 
       list.appendChild(item);
 
@@ -97,7 +97,7 @@ function showPinnedMessages() {
 
   panel.appendChild(list);
 
-  const btn = document.getElementById('pinned-btn');
+  const btn = document.getElementById('pinned-btn')!;
   const rect = btn.getBoundingClientRect();
   panel.style.position = 'fixed';
   panel.style.top = `${rect.bottom + 8}px`;
@@ -108,7 +108,7 @@ function showPinnedMessages() {
 
   setTimeout(() => {
     document.addEventListener('click', function handler(e) {
-      if (!panel?.contains(e.target) && !btn.contains(e.target)) {
+      if (!panel?.contains(e.target as Node) && !btn.contains(e.target as Node)) {
         panel?.remove(); panel = null;
         document.getElementById('pinned-btn')?.classList.remove('active');
         document.removeEventListener('click', handler);
@@ -117,9 +117,7 @@ function showPinnedMessages() {
   }, 0);
 }
 
-function closePinned() {
+export function closePinned() {
   if (panel) { panel.remove(); panel = null; }
   document.getElementById('pinned-btn')?.classList.remove('active');
 }
-
-module.exports = { showPinnedMessages, closePinned };

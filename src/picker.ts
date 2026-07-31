@@ -1,13 +1,19 @@
-const state = require('./state');
-const twemoji = require('twemoji');
-const path = require('path');
+import state from './state.ts';
+import twemoji from 'twemoji';
+import { MsgType } from 'matrix-js-sdk';
 
 const TWEMOJI_OPTS = {};
 
 const GIPHY_API_KEY = 'jwGk6OaCOMF9HpXQ2aP6wZubCwSYRyrR';
 const GIPHY_BASE = 'https://api.giphy.com/v1/gifs';
 
-const EMOJI_CATEGORIES = [
+interface EmojiCategory {
+  name: string;
+  icon: string;
+  emojis: string[];
+}
+
+const EMOJI_CATEGORIES: EmojiCategory[] = [
   { name: 'Smileys', icon: '😀', emojis: ['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','🥰','😍','🤩','😘','😗','😚','😙','🥲','😋','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔','🤐','🤨','😐','😑','😶','😏','😒','🙄','😬','🤥','😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🤧','🥵','🥶','🥴','😵','💫','🤯','🤠','🥳','🥸','😎','🤓','🧐','😕','😟','🙁','☹️','😮','😯','😲','😳','🥺','😦','😧','😨','😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','🥱','😤','😡','😠','🤬','😈','👿','💀','☠️','💩','🤡','👹','👺','👻','👽','👾','🤖'] },
   { name: 'People', icon: '👋', emojis: ['👋','🤚','🖐️','✋','🖖','👌','🤌','🤏','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️','👍','👎','✊','👊','🤛','🤜','👏','🙌','👐','🤲','🤝','🙏','✍️','💅','🤳','💪','🦾','🦿','🦵','🦶','👂','🦻','👃','🧠','🫀','🫁','🦷','🦴','👀','👁️','👅','👄','💋','🫦','👶','🧒','👦','👧','🧑','👱','👨','🧔','👩','🧓','👴','👵','🙍','🙎','🙅','🙆','💁','🙋','🧏','🙇','🤦','🤷'] },
   { name: 'Animals', icon: '🐶', emojis: ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐻‍❄️','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🙈','🙉','🙊','🐔','🐧','🐦','🐤','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🐛','🦋','🐌','🐞','🐜','🦟','🦗','🕷️','🦂','🐢','🐍','🦎','🐙','🦑','🦐','🦞','🦀','🦭','🐡','🐠','🐟','🐬','🐳','🐋','🦈','🐊','🐅','🐆','🦓','🦍','🐘','🦛','🦏','🐪','🐫','🦒','🦘','🐃','🐂','🐄','🐎','🐖','🐏','🐑','🦙','🐐','🦌','🐕','🐩','🐈','🐓','🦃','🦚','🦜','🦢','🦩','🕊️','🐇','🦝','🦨','🦡','🦦','🦥','🐁','🐀','🐿️','🦔'] },
@@ -17,18 +23,18 @@ const EMOJI_CATEGORIES = [
   { name: 'Symbols', icon: '❤️', emojis: ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❤️‍🔥','❤️‍🩹','❣️','💕','💞','💓','💗','💖','💘','💝','💟','☮️','✝️','☪️','🕉️','☸️','✡️','🔯','☯️','☦️','🛐','⛎','♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓','🆔','⚛️','🉑','☢️','☣️','📴','📳','🈶','🈚','🈸','🈺','🈷️','✴️','🆚','💮','🉐','㊙️','㊗️','🈴','🈵','🈹','🈲','🅰️','🅱️','🆎','🆑','🅾️','🆘','❌','⭕','🛑','⛔','📛','🚫','💯','💢','♨️','🚷','🚯','🚳','🚱','🔞','📵','🚭','❗','❕','❓','❔','‼️','⁉️','🔅','🔆','〽️','⚠️','🚸','🔱','⚜️','🔰','♻️','✅','🈯','💹','❎','🌐','💠','Ⓜ️','🌀','💤','🏧','🚾','♿','🅿️','🛗','🈳','🈂️','🛂','🛃','🛄','🛅'] },
 ];
 
-let emojiPicker = null;
-let gifPicker = null;
-let gifSearchTimeout = null;
+let emojiPicker: HTMLElement | null = null;
+let gifPicker: HTMLElement | null = null;
+let gifSearchTimeout: ReturnType<typeof setTimeout> | null = null;
 
-function twemojiImg(emoji) {
+function twemojiImg(emoji: string): string {
   const tmp = document.createElement('span');
   tmp.textContent = emoji;
   twemoji.parse(tmp, TWEMOJI_OPTS);
   return tmp.innerHTML;
 }
 
-function createEmojiPicker(onPick) {
+function createEmojiPicker(onPick?: (emoji: string) => void) {
   const picker = document.createElement('div');
   picker.className = 'emoji-picker';
   picker.id = 'emoji-picker';
@@ -45,7 +51,7 @@ function createEmojiPicker(onPick) {
 
   const renderGrid = () => {
     grid.innerHTML = '';
-    EMOJI_CATEGORIES[activeCat].emojis.forEach(emoji => {
+    EMOJI_CATEGORIES[activeCat]?.emojis.forEach(emoji => {
       const btn = document.createElement('button');
       btn.className = 'emoji-btn-item';
       btn.innerHTML = twemojiImg(emoji);
@@ -81,7 +87,7 @@ function createEmojiPicker(onPick) {
   return picker;
 }
 
-async function fetchGifs(query = '') {
+async function fetchGifs(query = ''): Promise<any[]> {
   const endpoint = query
     ? `${GIPHY_BASE}/search?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(query)}&limit=20&rating=g`
     : `${GIPHY_BASE}/trending?api_key=${GIPHY_API_KEY}&limit=20&rating=g`;
@@ -92,7 +98,12 @@ async function fetchGifs(query = '') {
   return data.data || [];
 }
 
-function extractGifUrls(gif) {
+interface GifUrls {
+  full: string | null;
+  preview: string | null;
+}
+
+function extractGifUrls(gif: any): GifUrls {
   const full = gif.images?.original?.url || gif.images?.fixed_height?.url || null;
   const preview = gif.images?.fixed_height_small?.url || gif.images?.preview_gif?.url || full;
   return { full, preview };
@@ -140,13 +151,13 @@ function createGifPicker() {
       });
     } catch (err) {
       console.error('GIF load error:', err);
-      grid.innerHTML = `<div class="gif-loading">Failed: ${err.message}</div>`;
+      grid.innerHTML = `<div class="gif-loading">Failed: ${err instanceof Error ? err.message : err}</div>`;
     }
   };
 
   searchInput.addEventListener('click', (e) => e.stopPropagation());
   searchInput.addEventListener('input', () => {
-    clearTimeout(gifSearchTimeout);
+    if (gifSearchTimeout) clearTimeout(gifSearchTimeout);
     gifSearchTimeout = setTimeout(() => loadGifs(searchInput.value.trim()), 400);
   });
 
@@ -154,7 +165,7 @@ function createGifPicker() {
   return picker;
 }
 
-async function sendGif(url, title) {
+async function sendGif(url: string, title: string) {
   if (!state.roomId || !state.client) return;
   try {
     const res = await fetch(url);
@@ -162,9 +173,9 @@ async function sendGif(url, title) {
     const filename = (title || 'GIF').replace(/[^a-z0-9 ]/gi, '').trim() || 'GIF';
     const file = new File([blob], `${filename}.gif`, { type: 'image/gif' });
     const uploaded = await state.client.uploadContent(file, { type: 'image/gif' });
-    const mxcUrl = uploaded?.content_uri || uploaded;
+    const mxcUrl: string = typeof uploaded === 'string' ? uploaded : (uploaded?.content_uri ?? '');
     await state.client.sendMessage(state.roomId, {
-      msgtype: 'm.image',
+      msgtype: MsgType.Image,
       url: mxcUrl,
       body: `${filename}.gif`,
       info: { mimetype: 'image/gif' },
@@ -174,8 +185,8 @@ async function sendGif(url, title) {
   }
 }
 
-function insertTextAtCursor(text) {
-  const input = document.getElementById('message-input');
+function insertTextAtCursor(text: string) {
+  const input = document.getElementById('message-input') as HTMLTextAreaElement;
   const start = input.selectionStart;
   const end = input.selectionEnd;
   input.value = input.value.slice(0, start) + text + input.value.slice(end);
@@ -184,7 +195,7 @@ function insertTextAtCursor(text) {
   input.dispatchEvent(new Event('input'));
 }
 
-function positionPicker(picker, btn) {
+function positionPicker(picker: HTMLElement, btn: HTMLElement) {
   document.body.appendChild(picker);
   const rect = btn.getBoundingClientRect();
   const pw = picker.offsetWidth;
@@ -197,14 +208,14 @@ function positionPicker(picker, btn) {
   picker.style.top = 'auto';
 }
 
-function closeAllPickers() {
+export function closeAllPickers() {
   emojiPicker?.remove();
   gifPicker?.remove();
   emojiPicker = null;
   gifPicker = null;
 }
 
-function initPickers() {
+export function initPickers() {
   const emojiBtn = document.getElementById('emoji-btn');
   const gifBtn = document.getElementById('gif-btn');
 
@@ -225,14 +236,15 @@ function initPickers() {
   });
 
   document.addEventListener('click', (e) => {
-    if (!e.target.closest('#emoji-picker') && !e.target.closest('#gif-picker') &&
-        !e.target.closest('#emoji-btn') && !e.target.closest('#gif-btn')) {
+    const target = e.target as HTMLElement | null;
+    if (!target?.closest('#emoji-picker') && !target?.closest('#gif-picker') &&
+        !target?.closest('#emoji-btn') && !target?.closest('#gif-btn')) {
       closeAllPickers();
     }
   });
 }
 
-function showReactionPicker(anchorBtn, eventId) {
+export function showReactionPicker(anchorBtn: HTMLElement, eventId: string) {
   const existing = document.getElementById('reaction-emoji-picker');
   if (existing) {
     existing.remove();
@@ -267,12 +279,11 @@ function showReactionPicker(anchorBtn, eventId) {
 
   setTimeout(() => {
     document.addEventListener('click', function handler(e) {
-      if (!e.target.closest('#reaction-emoji-picker')) {
+      const target = e.target as HTMLElement | null;
+      if (!target?.closest('#reaction-emoji-picker')) {
         picker.remove();
         document.removeEventListener('click', handler);
       }
     });
   }, 0);
 }
-
-module.exports = { initPickers, closeAllPickers, showReactionPicker };

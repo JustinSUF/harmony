@@ -1,25 +1,26 @@
-const state = require('./state');
+import state from './state.ts';
+import { localpart } from './utils.ts';
 
 const indicator = document.createElement('div');
 indicator.className = 'typing-indicator';
-let typingTimeout = null;
+let typingTimeout: ReturnType<typeof setTimeout> | null = null;
 let isTyping = false;
-const messageInput = document.getElementById('message-input');
+const messageInput = document.getElementById('message-input') as HTMLTextAreaElement;
 
-function init() {
-document.querySelector('.status-row').appendChild(indicator);
-  state.client.on('RoomMember.typing', () => {
+export function init() {
+  document.querySelector('.status-row')!.appendChild(indicator);
+  state.client!.on('RoomMember.typing' as any, () => {
     if (!state.roomId) return;
-    const room = state.client.getRoom(state.roomId);
+    const room = state.client!.getRoom(state.roomId);
     if (!room) return;
 
     const typers = room.currentState.getMembers()
-      .filter(m => m.typing && m.userId !== state.client.getUserId());
+      .filter(m => m.typing && m.userId !== state.client!.getUserId());
 
     if (!typers.length) { indicator.innerHTML = ''; return; }
 
     const names = typers.map(m => {
-      const raw = m.name || m.userId.split(':')[0].slice(1);
+      const raw = m.name || localpart(m.userId);
       const i = raw.indexOf('(');
       return i > 0 ? raw.slice(0, i).trim() : raw;
     });
@@ -32,17 +33,17 @@ document.querySelector('.status-row').appendChild(indicator);
   });
 }
 
-function clearTyping() { indicator.innerHTML = ''; }
+export function clearTyping() { indicator.innerHTML = ''; }
 
-function checkCurrentTypers() {
+export function checkCurrentTypers() {
   if (!state.roomId || !state.client) return;
   const room = state.client.getRoom(state.roomId);
   if (!room) return;
   const typers = room.currentState.getMembers()
-    .filter(m => m.typing && m.userId !== state.client.getUserId());
+    .filter(m => m.typing && m.userId !== state.client!.getUserId());
   if (!typers.length) { indicator.innerHTML = ''; return; }
   const names = typers.map(m => {
-    const raw = m.name || m.userId.split(':')[0].slice(1);
+    const raw = m.name || localpart(m.userId);
     const i = raw.indexOf('(');
     return i > 0 ? raw.slice(0, i).trim() : raw;
   });
@@ -58,19 +59,17 @@ messageInput.addEventListener('input', () => {
     state.client.sendTyping(state.roomId, true, 4000);
     isTyping = true;
   }
-  clearTimeout(typingTimeout);
+  if (typingTimeout) clearTimeout(typingTimeout);
   typingTimeout = setTimeout(() => {
-    state.client.sendTyping(state.roomId, false);
+    state.client!.sendTyping(state.roomId!, false, 0);
     isTyping = false;
   }, 3000);
 });
 
 messageInput.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey && isTyping) {
-    clearTimeout(typingTimeout);
-    state.client.sendTyping(state.roomId, false);
+    if (typingTimeout) clearTimeout(typingTimeout);
+    state.client!.sendTyping(state.roomId!, false, 0);
     isTyping = false;
   }
 });
-
-module.exports = { init, clearTyping, checkCurrentTypers };

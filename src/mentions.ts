@@ -1,14 +1,16 @@
-const state = require('./state');
-const { mxcToUrl, escapeHtml, makeAvatar } = require('./utils');
+import state from './state.ts';
+import { mxcToUrl, escapeHtml, makeAvatar, localpart } from './utils.ts';
+import { cancelReply } from './messages.ts';
+import type { RoomMember } from 'matrix-js-sdk';
+import type { IContent } from 'matrix-js-sdk';
 
-const input = document.getElementById('message-input');
-const form  = document.getElementById('message-form');
+const input = document.getElementById('message-input') as HTMLTextAreaElement;
 
-let picker       = null;
-let selectedIdx  = 0;
+let picker: HTMLElement | null = null;
+let selectedIdx = 0;
 let mentionStart = -1;
 
-const resolvedMentions = new Map();
+const resolvedMentions = new Map<number, { member: RoomMember; length: number }>();
 
 function openPicker() {
   if (picker) return;
@@ -19,19 +21,19 @@ function openPicker() {
 
 function closePicker() {
   picker?.remove();
-  picker  = null;
-  selectedIdx  = 0;
+  picker = null;
+  selectedIdx = 0;
   mentionStart = -1;
 }
 
-function renderPicker(query) {
+function renderPicker(query: string) {
   if (!picker) return;
 
   const all = getMembersSorted();
   const results = (query
     ? all.filter(m =>
         m.name.toLowerCase().includes(query.toLowerCase()) ||
-        m.userId.split(':')[0].slice(1).toLowerCase().includes(query.toLowerCase())
+        localpart(m.userId).toLowerCase().includes(query.toLowerCase())
       )
     : all
   ).slice(0, 8);
@@ -54,7 +56,7 @@ function renderPicker(query) {
     const left = document.createElement('div');
     left.className = 'mention-left';
 
-    const avatarEl = makeAvatar(mxcToUrl(member.getMxcAvatarUrl?.()), member.name[0].toUpperCase(), 'mention-avatar');
+    const avatarEl = makeAvatar(mxcToUrl(member.getMxcAvatarUrl?.()), member.name[0]!.toUpperCase(), 'mention-avatar');
 
     const nameEl = document.createElement('span');
     nameEl.className = 'mention-name';
@@ -64,7 +66,7 @@ function renderPicker(query) {
 
     const idEl = document.createElement('span');
     idEl.className = 'mention-id';
-    idEl.textContent = member.userId.split(':')[0];
+    idEl.textContent = member.userId.split(':')[0] ?? '';
 
     item.append(left, idEl);
     item.addEventListener('mousedown', e => {
@@ -72,7 +74,7 @@ function renderPicker(query) {
       commitMention(member);
     });
 
-    picker.appendChild(item);
+    picker!.appendChild(item);
   });
 
   positionPicker();
@@ -81,14 +83,14 @@ function renderPicker(query) {
 function positionPicker() {
   if (!picker) return;
   const rect = input.getBoundingClientRect();
-  picker.style.width  = `${rect.width}px`;
-  picker.style.left   = `${rect.left}px`;
+  picker.style.width = `${rect.width}px`;
+  picker.style.left = `${rect.left}px`;
   picker.style.bottom = `${window.innerHeight - rect.top + 6}px`;
-  picker.style.top    = 'auto';
+  picker.style.top = 'auto';
 }
 
-function commitMention(member) {
-  const val   = input.value;
+function commitMention(member: RoomMember) {
+  const val = input.value;
   const after = val.slice(input.selectionStart);
   const insertedText = `@${member.name}`;
 
@@ -115,10 +117,10 @@ input.addEventListener('keydown', e => {
     selectedIdx = Math.max(selectedIdx - 1, 0);
     updateSelected();
   } else if (e.key === 'Enter' || e.key === 'Tab') {
-    const sel = picker.querySelector('.mention-item.selected');
+    const sel = picker.querySelector<HTMLElement>('.mention-item.selected');
     if (sel) {
       e.preventDefault();
-      const m = state.client.getRoom(state.roomId)?.getMember(sel.dataset.userId);
+      const m = state.client!.getRoom(state.roomId!)?.getMember(sel.dataset.userId!);
       if (m) commitMention(normaliseMember(m));
     }
   } else if (e.key === 'Escape') {
@@ -161,14 +163,14 @@ function updateSelected() {
   );
 }
 
-function normaliseMember(m) {
-  const raw = m.name || m.userId.split(':')[0].slice(1);
-  const i   = raw.indexOf('(');
-  m.name    = i > 0 ? raw.slice(0, i).trim() : raw;
+function normaliseMember(m: RoomMember): RoomMember {
+  const raw = m.name || localpart(m.userId);
+  const i = raw.indexOf('(');
+  m.name = i > 0 ? raw.slice(0, i).trim() : raw;
   return m;
 }
 
-function getMembersSorted() {
+function getMembersSorted(): RoomMember[] {
   if (!state.roomId || !state.client) return [];
   const room = state.client.getRoom(state.roomId);
   if (!room) return [];
@@ -179,14 +181,12 @@ function getMembersSorted() {
     .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
 }
 
-function buildBody(text) {
-  const { cancelReply } = require('./messages');
-
+export function buildBody(text: string): IContent {
   const offsets = [...resolvedMentions.keys()].sort((a, b) => a - b);
   let formatted = applyMarkdown(text);
 
   for (const offset of offsets) {
-    const { member } = resolvedMentions.get(offset);
+    const { member } = resolvedMentions.get(offset)!;
     const tag = escapeHtml(`@${member.name}`);
     formatted = formatted.replace(
       tag,
@@ -196,7 +196,7 @@ function buildBody(text) {
 
   resolvedMentions.clear();
 
-  const content = {
+  const content: IContent = {
     msgtype: 'm.text',
     body: text,
     format: 'org.matrix.custom.html',
@@ -204,21 +204,21 @@ function buildBody(text) {
   };
 
   if (state.replyTo) {
-    content['m.relates_to'] = { 'm.in_reply_to': { event_id: state.replyTo.getId() } };
+    content['m.relates_to'] = { 'm.in_reply_to': { event_id: state.replyTo.getId() ?? '' } };
     cancelReply();
   }
 
   return content;
 }
 
-function applyMarkdown(text) {
-  const spoilers = [];
-  text = text.replace(/\|\|(.+?)\|\|/g, (_, content) => {
+export function applyMarkdown(text: string): string {
+  const spoilers: string[] = [];
+  text = text.replace(/\|\|(.+?)\|\|/g, (_, content: string) => {
     spoilers.push(content);
     return `SPOILER${spoilers.length - 1}END`;
   });
 
-  const blocks = [];
+  const blocks: string[] = [];
   let s = escapeHtml(text);
 
   s = s.replace(/```[\s\S]*?```/g, match => {
@@ -252,6 +252,4 @@ function applyMarkdown(text) {
   return s;
 }
 
-function clearMentions() { resolvedMentions.clear(); }
-
-module.exports = { buildBody, clearMentions, applyMarkdown };
+export function clearMentions() { resolvedMentions.clear(); }
