@@ -1,4 +1,4 @@
-const state = require('./state');
+import state from './state.js';
 
 function mxcToUrl(mxc) {
   if (!mxc?.startsWith('mxc://')) return null;

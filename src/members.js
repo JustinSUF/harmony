@@ -1,6 +1,6 @@
-const state = require('./state');
-const { mxcToUrl, escapeHtml, makeAvatar } = require('./utils');
-const { showUserProfile } = require('./profile');
+import state from './state.js';
+import { mxcToUrl, escapeHtml, makeAvatar } from './utils.js';
+import { showUserProfile } from './profile.js';
 
 const ITEM_HEIGHT = 42;
 const BUFFER = 10;

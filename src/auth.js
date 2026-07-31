@@ -1,5 +1,5 @@
-const sdk = require('matrix-js-sdk');
-const state = require('./state');
+import state from './state.js';
+import * as sdk from 'matrix-js-sdk';
 
 const KEYS = {
   token: 'mx_token',

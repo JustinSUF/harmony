@@ -1,5 +1,5 @@
-const state = require('./state');
-const { mxcToUrl, getAverageColor } = require('./utils');
+import state from './state.js';
+import { mxcToUrl } from './utils.js';
 
 const popup = document.getElementById('user-profile-popup');
 const closeBtn = document.getElementById('profile-close');

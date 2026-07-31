@@ -1,6 +1,5 @@
-const state = require('./state');
-const twemoji = require('twemoji');
-const path = require('path');
+import state from './state.js';
+import twemoji from 'twemoji';
 
 const TWEMOJI_OPTS = {};
 

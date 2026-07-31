@@ -1,4 +1,4 @@
-const state = require('./state');
+import state from './state.js';
 
 const indicator = document.createElement('div');
 indicator.className = 'typing-indicator';

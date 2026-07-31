@@ -1,6 +1,6 @@
-const state = require('./state');
-const { mxcToUrl, escapeHtml, makeAvatar } = require('./utils');
-const { buildMessageEl } = require('./messages');
+import state from './state.js';
+import { mxcToUrl, escapeHtml, makeAvatar } from './utils.js';
+import { buildMessageEl } from './messages.js';
 
 let panel = null;
 

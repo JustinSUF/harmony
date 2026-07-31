@@ -1,6 +1,6 @@
-const state = require('./state');
-const { mxcToUrl, makeAvatar } = require('./utils');
-const { showUserProfile } = require('./profile');
+import state from './state.js';
+import { mxcToUrl, makeAvatar } from './utils.js';
+import { showUserProfile } from './profile.js';
 
 const bar = document.createElement('div');
 bar.className = 'receipts-bar';

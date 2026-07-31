@@ -15,7 +15,7 @@ function createWindow() {
       enableRemoteModule: true,
       webSecurity: false,
     },
-    title: 'Harmony',
+    title: 'Discord Matrix',
     resizable: true,
     autoHideMenuBar: true,
   });

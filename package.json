@@ -7,7 +7,8 @@
     "start": "electron-forge start",
     "dev": "electron . --enable-logging",
     "package": "electron-forge package",
-    "make": "electron-forge make"
+    "make": "electron-forge make",
+    "build": "bunx esbuild renderer.js --bundle --platform=browser --target=es2020 --outfile=bundle.js --tree-shaking=true --minify "
   },
   "keywords": [
     "matrix",
@@ -15,7 +16,7 @@
     "chat"
   ],
   "author": "atjustin",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "config": {
     "forge": {
       "packagerConfig": {
@@ -45,19 +46,19 @@
     }
   },
   "devDependencies": {
-    "@electron-forge/cli": "^7.11.1",
-    "@electron-forge/maker-deb": "^7.11.1",
-    "@electron-forge/maker-rpm": "^7.11.1",
-    "@electron-forge/maker-squirrel": "^7.11.1",
-    "@electron-forge/maker-zip": "^7.11.1",
-    "@electron-forge/plugin-auto-unpack-natives": "^7.11.1",
-    "@electron-forge/plugin-fuses": "^7.11.1",
-    "@electron/fuses": "^1.8.0",
-    "electron": "^28.0.0"
+    "@electron-forge/cli": "^7.11.2",
+    "@electron-forge/maker-deb": "^7.11.2",
+    "@electron-forge/maker-rpm": "^7.11.2",
+    "@electron-forge/maker-squirrel": "^7.11.2",
+    "@electron-forge/maker-zip": "^7.11.2",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.11.2",
+    "@electron-forge/plugin-fuses": "^7.11.2",
+    "@electron/fuses": "^2.1.3",
+    "electron": "^43.2.0"
   },
   "dependencies": {
     "electron-squirrel-startup": "^1.0.1",
-    "matrix-js-sdk": "^32.0.0",
+    "matrix-js-sdk": "^42.1.0-rc.0",
     "twemoji": "^14.0.2"
   }
 }

@@ -1,9 +1,10 @@
-const state = require('./src/state');
-const { mxcToUrl, scrollToBottom } = require('./src/utils');
-const { login, getSavedSession, normalizeHomeserver, showStatus } = require('./src/auth');
-const { startClient } = require('./src/client');
-const { buildMessageEl } = require('./src/messages');
-const { buildBody, clearMentions } = require('./src/mentions');
+import state from './src/state.js';
+import { mxcToUrl, scrollToBottom } from './src/utils.js';
+import { login, getSavedSession, normalizeHomeserver, showStatus } from './src/auth.js';
+import { startClient } from './src/client.js';
+import { buildMessageEl } from './src/messages.js';
+import { buildBody, clearMentions } from './src/mentions.js';
+import * as authModule from './src/auth.js';
 
 window.addEventListener('DOMContentLoaded', () => {
   const session = getSavedSession();
@@ -11,7 +12,7 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('login-screen').classList.remove('active');
     document.getElementById('loading-screen').classList.add('active');
     startClient(session).catch(() => {
-      require('./src/auth').clearSession();
+      authModule.clearSession();
       document.getElementById('loading-screen').classList.remove('active');
       document.getElementById('login-screen').classList.add('active');
     });

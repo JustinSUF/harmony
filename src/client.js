@@ -1,14 +1,14 @@
-const sdk = require('matrix-js-sdk');
-const state = require('./state');
-const { mxcToUrl } = require('./utils');
-const { logout } = require('./auth');
-const { loadHomeView, loadSpaces, showHomeNav, handleNewRoom } = require('./rooms');
-const { handleIncoming } = require('./messages');
-const { initPickers } = require('./picker');
-const { init: initTyping } = require('./typing');
-const { init: initReceipts } = require('./receipts');
+import state from './state.js';
+import { mxcToUrl } from './utils.js';
+import { logout } from './auth.js';
+import { loadHomeView, loadSpaces, showHomeNav, handleNewRoom } from './rooms.js';
+import { handleIncoming } from './messages.js';
+import { initPickers } from './picker.js';
+import { init as initTyping } from './typing.js';
+import { init as initReceipts } from './receipts.js';
+import * as sdk from 'matrix-js-sdk';
 
-function buildClient(credentials) {
+async function buildClient(credentials) {
   return sdk.createClient({
     baseUrl: credentials.baseUrl || credentials.homeserver,
     accessToken: credentials.accessToken || credentials.token,
@@ -18,7 +18,8 @@ function buildClient(credentials) {
 }
 
 async function startClient(credentials) {
-  state.client = buildClient(credentials);
+  console.log('Starting client with credentials:', credentials);
+  state.client = await buildClient(credentials);
 
   const userId = state.client.getUserId();
   const shortName = userId.split(':')[0].slice(1);

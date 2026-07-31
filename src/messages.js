@@ -1,8 +1,10 @@
-const state = require('./state');
-const { mxcToUrl, escapeHtml, linkify, makeAvatar, scrollToBottom } = require('./utils');
-const { showUserProfile } = require('./profile');
-const twemoji = require('twemoji');
-const path = require('path');
+import state from './state.js';
+import { mxcToUrl, escapeHtml, linkify, makeAvatar, scrollToBottom } from './utils.js';
+import { showUserProfile } from './profile.js';
+import twemoji from 'twemoji';
+
+import * as picker from './picker.js';
+import * as mentions from './mentions.js';
 
 const container = document.getElementById('messages-container');
 
@@ -443,8 +445,7 @@ async function saveEdit(newText, event) {
     cancelEdit();
     return;
   }
-  const { applyMarkdown } = require('./mentions');
-  const formatted = applyMarkdown(newText);
+  const formatted = mentions.applyMarkdown(newText);
   const existingRelation = event.getContent()['m.relates_to'];
   const replyRelation = existingRelation?.['m.in_reply_to']
     ? { 'm.in_reply_to': existingRelation['m.in_reply_to'] }
@@ -755,8 +756,7 @@ document.addEventListener('click', async e => {
     };
 
     if (action === 'react') {
-      const { showReactionPicker } = require('./picker');
-      showReactionPicker(btn, eventId);
+      picker.showReactionPicker(btn, eventId);
     } else if (action === 'reply') {
       startReply(event, room);
     } else if (action === 'edit') {
@@ -793,11 +793,11 @@ document.addEventListener('click', async e => {
     return;
   }
 
-  if (e.target.classList.contains('message-link')) {
-    e.preventDefault();
-    require('electron').shell.openExternal(e.target.href);
-    return;
-  }
+  // if (e.target.classList.contains('message-link')) {
+  //   e.preventDefault();
+  //   require('electron').shell.openExternal(e.target.href);
+  //   return;
+  // }
 
   if (e.target.classList.contains('spoiler')) {
     e.target.classList.toggle('revealed');

@@ -1,5 +1,6 @@
-const state = require('./state');
-const { mxcToUrl, escapeHtml, makeAvatar } = require('./utils');
+import state from './state.js';
+import { mxcToUrl, escapeHtml, makeAvatar } from './utils.js';
+import { cancelReply } from './messages.js';
 
 const input = document.getElementById('message-input');
 const form  = document.getElementById('message-form');
@@ -180,8 +181,6 @@ function getMembersSorted() {
 }
 
 function buildBody(text) {
-  const { cancelReply } = require('./messages');
-
   const offsets = [...resolvedMentions.keys()].sort((a, b) => a - b);
   let formatted = applyMarkdown(text);
 
@@ -254,4 +253,5 @@ function applyMarkdown(text) {
 
 function clearMentions() { resolvedMentions.clear(); }
 
-module.exports = { buildBody, clearMentions, applyMarkdown };
+// module.exports = { buildBody, clearMentions, applyMarkdown };
+export { buildBody, clearMentions, applyMarkdown };

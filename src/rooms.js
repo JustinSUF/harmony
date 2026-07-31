@@ -1,10 +1,10 @@
-const state = require('./state');
-const { mxcToUrl, escapeHtml, makeAvatar } = require('./utils');
-const { loadMessages, loadFullHistory } = require('./messages');
-const { loadMembers } = require('./members');
-const { clearTyping, checkCurrentTypers } = require('./typing');
-const { updateReceipts, sendReceipt, clearReceipts } = require('./receipts');
-const { showPinnedMessages, closePinned } = require('./pinned');
+import state from './state.js';
+import { mxcToUrl, escapeHtml, makeAvatar } from './utils.js';
+import { loadMessages, loadFullHistory } from './messages.js';
+import { loadMembers } from './members.js';
+import { clearTyping, checkCurrentTypers } from './typing.js';
+import { updateReceipts, sendReceipt, clearReceipts } from './receipts.js';
+import { showPinnedMessages, closePinned } from './pinned.js';
 
 const roomsList = document.getElementById('rooms-list');
 
