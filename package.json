@@ -8,7 +8,7 @@
     "dev": "electron . --enable-logging",
     "package": "electron-forge package",
     "make": "electron-forge make",
-    "build": "bunx esbuild renderer.ts --bundle --platform=browser --target=es2020 --outfile=bundle.js --tree-shaking=true --minify"
+    "build": "bunx esbuild renderer.ts --bundle --platform=browser --target=es2020 --outfile=bundle.js --tree-shaking=true"
   },
   "keywords": [
     "matrix",
