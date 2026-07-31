@@ -48,7 +48,11 @@ export function showStatus(msg: string, type: string) {
 
 export async function login(homeserver: string, username: string, password: string): Promise<Credentials> {
   const tempClient = sdk.createClient({ baseUrl: homeserver });
-  const res = await tempClient.login('m.login.password', { user: username, password });
+  const res = await tempClient.login('m.login.password', {
+    identifier: { type: 'm.id.user', user: username },
+    password,
+    initial_device_display_name: 'Harmony',
+  });
   saveSession(homeserver, res.access_token, res.user_id);
   return { homeserver, token: res.access_token, userId: res.user_id };
 }
